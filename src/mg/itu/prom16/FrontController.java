@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import mg.itu.prom16.annotations.Controller;
+import mg.itu.prom16.util.Mapping;
+import mg.itu.prom16.util.Reflect;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,11 +17,21 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+
+import static mg.itu.prom16.util.Reflect.*;
 
 
 public class FrontController extends HttpServlet {
-    protected static boolean checked = false;
     protected static List<String> controllersList = null;
+    protected static Map<String, Mapping> urlMapping = null;
+
+    @Override
+    public void init() throws ServletException {
+        super.init();
+        String packageName = this.getInitParameter("controller-package");
+        urlMapping = getAllUrlMapping(packageName, getServletContext().getContextPath());
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -37,44 +49,24 @@ public class FrontController extends HttpServlet {
     public void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         PrintWriter out = response.getWriter();
-        out.println("Hello");
+        String url = request.getRequestURI();
+        Mapping mapping = getMapping(url);
+        if(mapping != null) {
+            out.println("url: " + url);
+            out.println("className: " + mapping.getClassName());
+            out.println("method: " + mapping.getMethodName());
 
-        if(!checked) {
-            controllersList = new ArrayList<>();
-            String packageName = this.getInitParameter("controller-package");
-            out.println(packageName);
-            List<Class<?>> classes = getClasses(packageName);
-
-
-            for(Class clazz : classes){
-                if(clazz.isAnnotationPresent(Controller.class)) controllersList.add(clazz.getName());
-            }
+        } else {
+            out.println("Il n\'y a pas de methode associé a ce chemin: " + url);
         }
 
-        for(String className : controllersList){
-            out.println("- " + className);
-        }
     }
 
-    protected List<Class<?>> getClasses(String packageName) {
-        List<Class<?>> classes = new ArrayList<>();
 
-        URL url = Thread.currentThread().getContextClassLoader().getResource(packageName);
-        File pkg = new File(url.getFile().replaceAll("\\.", "/"));
 
-        if(pkg.isDirectory()) {
-            for(File file : pkg.listFiles()){
-                if (file.getName().endsWith(".class")) {
-                    String className = packageName + "." + file.getName().split("\\.")[0];
-                    try {
-                        Class<?> clazz = Class.forName(className);
-                        classes.add(clazz);
-                    }catch (ClassNotFoundException ignored){
-                    }
-                }
-            }
-        }
+    protected static Mapping getMapping(String url) {
+        if(url.endsWith("/")) url = url.substring(0, url.length() - 1);
+        return urlMapping.get(url);
 
-        return classes;
     }
 }
