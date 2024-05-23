@@ -1,6 +1,7 @@
 ### IntelliJ IDEA ###
 out/
 build/
+summer.jar
 !**/src/main/**/out/
 !**/src/test/**/out/
 
