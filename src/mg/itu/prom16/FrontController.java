@@ -52,9 +52,14 @@ public class FrontController extends HttpServlet {
         String url = request.getRequestURI();
         Mapping mapping = getMapping(url);
         if(mapping != null) {
-            out.println("url: " + url);
-            out.println("className: " + mapping.getClassName());
-            out.println("method: " + mapping.getMethodName());
+            try {
+                out.println(mapping.execMethod());
+            } catch (Exception e){
+                e.printStackTrace(out);
+            }
+//            out.println("url: " + url);
+//            out.println("className: " + mapping.getClassName());
+//            out.println("method: " + mapping.getMethodName());
 
         } else {
             out.println("Il n\'y a pas de methode associé a ce chemin: " + url);
