@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import mg.itu.prom16.annotations.Controller;
 import mg.itu.prom16.util.Mapping;
+import mg.itu.prom16.util.ModelView;
 import mg.itu.prom16.util.Reflect;
 
 import java.io.File;
@@ -53,14 +54,23 @@ public class FrontController extends HttpServlet {
         Mapping mapping = getMapping(url);
         if(mapping != null) {
             try {
-                out.println(mapping.execMethod());
+                Object execMethod = mapping.execMethod();
+
+                if(execMethod instanceof ModelView mv){
+                    mv.getAttributes().forEach((key, value) -> {
+                        request.setAttribute(key, value);
+                    });
+                    request.getServletContext().getRequestDispatcher(mv.getUrl())
+                            .forward(request, response);
+                }
+                else {
+                    out.println(execMethod);
+                }
+
+//                out.println(mapping.execMethod());
             } catch (Exception e){
                 e.printStackTrace(out);
             }
-//            out.println("url: " + url);
-//            out.println("className: " + mapping.getClassName());
-//            out.println("method: " + mapping.getMethodName());
-
         } else {
             out.println("Il n\'y a pas de methode associé a ce chemin: " + url);
         }
