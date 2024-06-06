@@ -28,7 +28,7 @@ public class FrontController extends HttpServlet {
     protected static Map<String, Mapping> urlMapping = null;
 
     @Override
-    public void init() throws ServletException {
+    public void init() throws ServletException{
         super.init();
         String packageName = this.getInitParameter("controller-package");
         urlMapping = getAllUrlMapping(packageName, getServletContext().getContextPath());
@@ -48,33 +48,32 @@ public class FrontController extends HttpServlet {
 
     @SuppressWarnings("all")
     public void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+            throws IOException, ServletException {
         PrintWriter out = response.getWriter();
         String url = request.getRequestURI();
         Mapping mapping = getMapping(url);
-        if(mapping != null) {
-            try {
-                Object execMethod = mapping.execMethod();
 
-                if(execMethod instanceof ModelView mv){
-                    mv.getAttributes().forEach((key, value) -> {
-                        request.setAttribute(key, value);
-                    });
-                    request.getServletContext().getRequestDispatcher(mv.getUrl())
-                            .forward(request, response);
-                }
-                else {
-                    out.println(execMethod);
-                }
+        if(mapping == null) throw new ServletException("Il n\'y a pas de methode associé a ce chemin: " + url);
 
-//                out.println(mapping.execMethod());
-            } catch (Exception e){
-                e.printStackTrace(out);
+        try {
+            Object execMethod = mapping.execMethod();
+
+            if(execMethod instanceof ModelView mv){
+                mv.getAttributes().forEach((key, value) -> {
+                    request.setAttribute(key, value);
+                });
+                request.getServletContext().getRequestDispatcher(mv.getUrl())
+                        .forward(request, response);
             }
-        } else {
-            out.println("Il n\'y a pas de methode associé a ce chemin: " + url);
-        }
+            else if (execMethod instanceof String str){
+                out.println(str);
 
+            } else {
+                throw new ServletException("Type de retour du methode: '" + mapping.getMethodName() +"' invalide");
+            }
+        } catch (Exception e){
+            throw new ServletException(e.getMessage());
+        }
     }
 
 
