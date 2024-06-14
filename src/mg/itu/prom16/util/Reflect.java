@@ -6,6 +6,7 @@ import mg.itu.prom16.annotations.Get;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,5 +67,4 @@ public class Reflect {
 
         return urlMapping;
     }
-
 }

@@ -53,11 +53,15 @@ public class FrontController extends HttpServlet {
         String url = request.getRequestURI();
         Mapping mapping = getMapping(url);
 
-        if(mapping == null) throw new ServletException("Il n\'y a pas de methode associé a ce chemin: " + url);
+        if(mapping == null) {
+            response.sendError (HttpServletResponse.SC_NOT_FOUND, "Il n\'y a pas de methode associé a ce chemin: " + url);
+            return;
+        }
+
+//        System.out.println("Running");
 
         try {
-            Object execMethod = mapping.execMethod();
-
+            Object execMethod = mapping.execMethod(request);
             if(execMethod instanceof ModelView mv){
                 mv.getAttributes().forEach((key, value) -> {
                     request.setAttribute(key, value);
