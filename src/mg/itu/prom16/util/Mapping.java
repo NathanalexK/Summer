@@ -9,6 +9,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Map;
 
 public class Mapping {
@@ -97,6 +100,15 @@ public class Mapping {
     public Object parseValue(String value, Class<?> type){
         String paramType = type.getSimpleName().toLowerCase();
         switch (paramType) {
+            case "localdate" -> {
+                return LocalDate.parse(value);
+            }
+            case "localtime" -> {
+                return LocalTime.parse(value);
+            }
+            case "localdatetime" -> {
+                return LocalDateTime.parse(value);
+            }
             case "int", "integer" -> {
                 try {
                     return Integer.parseInt(value);
