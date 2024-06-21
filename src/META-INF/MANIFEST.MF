@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: 
+Class-Path: servlet-api.jar paranamer-2.8.jar
+
