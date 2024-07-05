@@ -2,21 +2,14 @@ package mg.itu.prom16;
 
 
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import mg.itu.prom16.annotations.Controller;
 import mg.itu.prom16.util.Mapping;
 import mg.itu.prom16.util.ModelView;
-import mg.itu.prom16.util.Reflect;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -58,8 +51,6 @@ public class FrontController extends HttpServlet {
             return;
         }
 
-//        System.out.println("Running");
-
         try {
             Object execMethod = mapping.execMethod(request);
             if(execMethod instanceof ModelView mv){
@@ -68,8 +59,8 @@ public class FrontController extends HttpServlet {
                 });
                 request.getServletContext().getRequestDispatcher(mv.getUrl())
                         .forward(request, response);
-            }
-            else if (execMethod instanceof String str){
+
+            } else if (execMethod instanceof String str){
                 out.println(str);
 
             } else {
@@ -83,8 +74,7 @@ public class FrontController extends HttpServlet {
 
 
     protected static Mapping getMapping(String url) {
-        if(url.endsWith("/")) url = url.substring(0, url.length() - 1);
+//        if(url.endsWith("/")) url = url.substring(0, url.length() - 1);
         return urlMapping.get(url);
-
     }
 }

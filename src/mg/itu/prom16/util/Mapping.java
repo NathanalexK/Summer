@@ -2,6 +2,7 @@ package mg.itu.prom16.util;
 
 import com.thoughtworks.paranamer.AdaptiveParanamer;
 import com.thoughtworks.paranamer.Paranamer;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import mg.itu.prom16.annotations.Param;
 
@@ -49,14 +50,6 @@ public class Mapping {
         return object.getClass().getDeclaredMethods();
     }
 
-//    public void setParametersName(String[] parametersName){
-//        this.parametersName = parametersName;
-//    }
-//
-//    public String[] getParametersName() {
-//        return this.parametersName;
-//    }
-
     public Object execMethod()
             throws Exception {
         Object object = Class.forName(className).getDeclaredConstructor().newInstance();
@@ -73,6 +66,7 @@ public class Mapping {
     public Object execMethod(HttpServletRequest request)
             throws Exception {
         Object object = Class.forName(className).getDeclaredConstructor().newInstance();
+        CustomSession customSession = null;
 
         for (Method method : getMethods()){
             if(!method.getName().equalsIgnoreCase(methodName)) continue;
@@ -86,13 +80,21 @@ public class Mapping {
                 String paramName = null;
 
                 if(parameters[i].isAnnotationPresent(Param.class))  paramName = parameters[i].getAnnotation(Param.class).name();
-                else                                                paramName = paramNames[i];
 
-                System.out.println(paramName);
+                else if(parameters[i].getType().equals(CustomSession.class)) {
+                    customSession = new CustomSession(request.getSession());
+                    paramValues[i] = customSession;
+                    continue;
+                }
+                else
+                    throw new ServletException("etu2498: Annotation @Param de la methode:"+ this.getMethodName()  +" introuvable");
+
                 paramValues[i] = getValue(request, paramName, parameters[i].getType());
             }
 
-            return method.invoke(object, paramValues);
+            Object invoked = method.invoke(object, paramValues);
+            if(customSession != null) customSession.toHttpSession(request.getSession());
+            return invoked;
         }
         throw new Exception("Method Not Found: " + methodName + " in class: " + className);
     }

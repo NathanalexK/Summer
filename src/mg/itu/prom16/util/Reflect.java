@@ -54,18 +54,17 @@ public class Reflect {
         for(Class<?> controller : controllers) {
             Method[] methods = controller.getDeclaredMethods();
             for(Method method : methods) {
-                if(method.isAnnotationPresent(Get.class)) {
-                    String url = appName + method.getAnnotation(Get.class).url();
+                if(!method.isAnnotationPresent(Get.class))  continue;
 
-                    if(urlMapping.containsKey(url))
-                        throw new ServletException("Doublons pour l'url: " + url);
+                String url = appName + method.getAnnotation(Get.class).url();
 
-                    Mapping mapping = new Mapping(controller.getName(), method.getName());
-                    urlMapping.put(url, mapping);
-                }
+                if(urlMapping.containsKey(url))
+                    throw new ServletException("Doublons pour l'url: " + url);
+
+                Mapping mapping = new Mapping(controller.getName(), method.getName());
+                urlMapping.put(url, mapping);
             }
         }
-
         return urlMapping;
     }
 
