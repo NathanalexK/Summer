@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import mg.itu.prom16.util.Mapping;
 import mg.itu.prom16.util.ModelView;
+import mg.itu.prom16.util.MyJSON;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -57,7 +58,7 @@ public class FrontController extends HttpServlet {
 
             if(mapping.isApi()) {
                 response.setContentType("application/json");
-                Gson gson = new Gson();
+                Gson gson = new MyJSON().getGson();
                 out.write(gson.toJson(execMethod));
                 return;
             }
