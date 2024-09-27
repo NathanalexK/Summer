@@ -1,6 +1,7 @@
 package mg.itu.prom16;
 
 
+import com.google.gson.Gson;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,6 +54,14 @@ public class FrontController extends HttpServlet {
 
         try {
             Object execMethod = mapping.execMethod(request);
+
+            if(mapping.isApi()) {
+                response.setContentType("application/json");
+                Gson gson = new Gson();
+                out.write(gson.toJson(execMethod));
+                return;
+            }
+
             if(execMethod instanceof ModelView mv){
                 mv.getAttributes().forEach((key, value) -> {
                     request.setAttribute(key, value);
@@ -67,6 +76,7 @@ public class FrontController extends HttpServlet {
                 throw new ServletException("Type de retour du methode: '" + mapping.getMethodName() +"' invalide");
             }
         } catch (Exception e){
+            e.printStackTrace();
             throw new ServletException(e.getMessage());
         }
     }

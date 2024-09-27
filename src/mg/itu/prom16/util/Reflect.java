@@ -3,6 +3,7 @@ package mg.itu.prom16.util;
 import jakarta.servlet.ServletException;
 import mg.itu.prom16.annotations.Controller;
 import mg.itu.prom16.annotations.Get;
+import mg.itu.prom16.annotations.RestApi;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -18,7 +19,7 @@ public class Reflect {
     protected static List<Class<?>> getControllers(String packageName)
             throws ServletException{
 
-        URL url = null; File pkg = null;
+        URL url; File pkg;
         List<Class<?>> classes = new ArrayList<>();
 
         try {
@@ -62,6 +63,9 @@ public class Reflect {
                     throw new ServletException("Doublons pour l'url: " + url);
 
                 Mapping mapping = new Mapping(controller.getName(), method.getName());
+
+                mapping.isApi(method.isAnnotationPresent(RestApi.class));
+
                 urlMapping.put(url, mapping);
             }
         }
@@ -69,15 +73,13 @@ public class Reflect {
     }
 
     public static Object setObjectField(Object obj, Field field, Object value)
-            throws Exception
-    {
+            throws Exception {
         Method[] methods = obj.getClass().getDeclaredMethods();
         return setObjectField(obj, methods, field, value);
     }
 
     public static Object setObjectField(Object obj, Method[] methods, Field field, Object value)
-            throws Exception
-    {
+            throws Exception {
         String setterMethod = "set" + Utility.capitalize(field.getName());
 
         for(Method method : methods) {

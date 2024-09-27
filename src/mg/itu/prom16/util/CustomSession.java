@@ -52,8 +52,6 @@ public class CustomSession {
             httpSession.removeAttribute(attName);
         }
 
-        this.values.forEach((k, v) -> {
-            httpSession.setAttribute(k, v);
-        });
+        this.values.forEach(httpSession::setAttribute);
     }
 }

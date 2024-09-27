@@ -6,10 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import mg.itu.prom16.annotations.Param;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
+import java.lang.reflect.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -18,14 +15,24 @@ import java.util.Map;
 public class Mapping {
     private String className;
     private String methodName;
+    private Boolean isApi = false;
+//    private Object instance;
 //    private String[] parametersName;
 
-    private Mapping(){}
+    private Mapping() {
+    }
 
-    public Mapping(String className, String methodName){
+    public Mapping(String className, String methodName) throws ServletException {
         this.setClassName(className);
         this.setMethodName(methodName);
-//        this.setParametersName(parametersName);
+    }
+
+    public Boolean isApi() {
+        return isApi;
+    }
+
+    public void isApi(Boolean api) {
+        isApi = api;
     }
 
     public String getClassName() {
@@ -45,61 +52,84 @@ public class Mapping {
     }
 
     public Method[] getMethods()
-            throws Exception{
-        Object object = Class.forName(className).getDeclaredConstructor().newInstance();
-        return object.getClass().getDeclaredMethods();
+        throws Exception {
+//        Object object = Class.forName(className).getDeclaredConstructor().newInstance();
+        return Class.forName(className).getDeclaredMethods();
     }
 
-    public Object execMethod()
-            throws Exception {
-        Object object = Class.forName(className).getDeclaredConstructor().newInstance();
+    public Method getMethod(String methodName) throws Exception {
+        for (Method method : getMethods()) {
+            if (!method.getName().equals(methodName)) continue;
 
-        for (Method method : object.getClass().getDeclaredMethods()){
-            if(!method.getName().equalsIgnoreCase(methodName)) continue;
-
-            return method.invoke(object);
+            return method;
         }
-
         throw new Exception("Method Not Found: " + methodName + " in class: " + className);
+
     }
+
+//    public Object execMethod()
+//            throws Exception {
+//
+//
+//        for (Method method : object.getClass().getDeclaredMethods()){
+//            if(!method.getName().equalsIgnoreCase(methodName)) continue;
+//
+//            return method.invoke(object);
+//        }
+//
+//        throw new Exception("Method Not Found: " + methodName + " in class: " + className);
+//    }
 
     public Object execMethod(HttpServletRequest request)
-            throws Exception {
-        Object object = Class.forName(className).getDeclaredConstructor().newInstance();
+        throws Exception {
         CustomSession customSession = null;
 
-        for (Method method : getMethods()){
-            if(!method.getName().equalsIgnoreCase(methodName)) continue;
+        Constructor<?> constructor = Class.forName(className).getConstructors()[0];
+        Parameter[] constructorParams = constructor.getParameters();
+        Object[] constructorArgs = new Object[constructorParams.length];
 
-            Paranamer paranamer = new AdaptiveParanamer();
-            Parameter[] parameters = method.getParameters();
-            String[] paramNames = paranamer.lookupParameterNames(method);
-            Object[] paramValues = new Object[parameters.length];
+        System.out.printf("constructor: %s", constructor);
 
-            for(int i = 0; i < parameters.length; i++){
-                String paramName = null;
-
-                if(parameters[i].isAnnotationPresent(Param.class))  paramName = parameters[i].getAnnotation(Param.class).name();
-
-                else if(parameters[i].getType().equals(CustomSession.class)) {
-                    customSession = new CustomSession(request.getSession());
-                    paramValues[i] = customSession;
-                    continue;
-                }
-                else
-                    throw new ServletException("etu2498: Annotation @Param de la methode:"+ this.getMethodName()  +" introuvable");
-
-                paramValues[i] = getValue(request, paramName, parameters[i].getType());
+        for (int i = 0; i < constructorParams.length; i++) {
+            if (constructorParams[i].getType() == CustomSession.class) {
+                System.out.println("YEEESSSS");
+                customSession = new CustomSession(request.getSession());
+                constructorArgs[i] = customSession;
             }
-
-            Object invoked = method.invoke(object, paramValues);
-            if(customSession != null) customSession.toHttpSession(request.getSession());
-            return invoked;
         }
-        throw new Exception("Method Not Found: " + methodName + " in class: " + className);
+
+        Object controller = null;
+        controller = constructor.newInstance(constructorArgs);
+
+        Method method = getMethod(methodName);
+
+        Paranamer paranamer = new AdaptiveParanamer();
+        Parameter[] parameters = method.getParameters();
+        String[] paramNames = paranamer.lookupParameterNames(method);
+        Object[] paramValues = new Object[parameters.length];
+
+        for (int i = 0; i < parameters.length; i++) {
+            String paramName = null;
+
+            if (parameters[i].isAnnotationPresent(Param.class)) paramName = parameters[i].getAnnotation(Param.class).name();
+
+            else if (parameters[i].getType().equals(CustomSession.class)) {
+                if (customSession == null) customSession = new CustomSession(request.getSession());
+                paramValues[i] = customSession;
+                continue;
+            } else
+                throw new ServletException("etu2498: Annotation @Param de la methode:" + this.getMethodName() + " introuvable");
+
+            paramValues[i] = getValue(request, paramName, parameters[i].getType());
+        }
+
+        Object invoked = method.invoke(controller, paramValues);
+        if (customSession != null) customSession.toHttpSession(request.getSession());
+        return invoked;
+
     }
 
-    public Object parseValue(String value, Class<?> type){
+    public Object parseValue(String value, Class<?> type) {
         String paramType = type.getSimpleName().toLowerCase();
         switch (paramType) {
             case "localdate" -> {
@@ -135,7 +165,7 @@ public class Mapping {
     }
 
     public Object getValue(HttpServletRequest request, String paramName, Class<?> parmType)
-            throws Exception {
+        throws Exception {
         if (Utility.isPrimitiveType(parmType))
             return parseValue(request.getParameter(paramName), parmType);
 
