@@ -1,21 +1,17 @@
 package mg.itu.prom16.util;
 
 import jakarta.servlet.ServletException;
-import mg.itu.prom16.annotations.Controller;
-import mg.itu.prom16.annotations.Get;
-import mg.itu.prom16.annotations.RestApi;
+import mg.itu.prom16.annotations.*;
 
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Reflect {
+
     protected static List<Class<?>> getControllers(String packageName)
             throws ServletException{
 
@@ -55,14 +51,14 @@ public class Reflect {
         for(Class<?> controller : controllers) {
             Method[] methods = controller.getDeclaredMethods();
             for(Method method : methods) {
-                if(!method.isAnnotationPresent(Get.class))  continue;
+                if(!method.isAnnotationPresent(Url.class)) continue;
 
-                String url = appName + method.getAnnotation(Get.class).url();
+                String url = appName + method.getAnnotation(Url.class).url();
 
                 if(urlMapping.containsKey(url))
                     throw new ServletException("Doublons pour l'url: " + url);
 
-                Mapping mapping = new Mapping(controller.getName(), method.getName());
+                Mapping mapping = new Mapping(controller, method);
 
                 mapping.isApi(method.isAnnotationPresent(RestApi.class));
 
@@ -89,5 +85,9 @@ public class Reflect {
         }
 
         throw new Exception("Aucun setter trouvé pour l'attribut: " + field.getName());
+    }
+
+    protected static boolean hasHttpMehod(Method method) {
+        return method.isAnnotationPresent(Get.class) || method.isAnnotationPresent(Post.class);
     }
 }

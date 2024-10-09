@@ -4,18 +4,21 @@ import com.thoughtworks.paranamer.AdaptiveParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import mg.itu.prom16.annotations.Param;
+import mg.itu.prom16.annotations.Post;
+import mg.itu.prom16.enumerations.HttpMethod;
 
 import java.lang.reflect.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Map;
 
 public class Mapping {
     private String className;
     private String methodName;
     private Boolean isApi = false;
+    private HttpMethod httpMethod = HttpMethod.GET;
 //    private Object instance;
 //    private String[] parametersName;
 
@@ -25,6 +28,19 @@ public class Mapping {
     public Mapping(String className, String methodName) throws ServletException {
         this.setClassName(className);
         this.setMethodName(methodName);
+//        if()
+    }
+
+    public Mapping(Class<?> controller, Method method) {
+        this.setClassName(controller.getName());
+        this.setMethodName(method.getName());
+        if(method.isAnnotationPresent(Post.class)) this.setHttpMethod(HttpMethod.POST);
+    }
+
+    public Mapping(String className, String methodName, HttpMethod method) throws ServletException {
+        this.setClassName(className);
+        this.setMethodName(methodName);
+        this.setHttpMethod(method);
     }
 
     public Boolean isApi() {
@@ -33,6 +49,14 @@ public class Mapping {
 
     public void isApi(Boolean api) {
         isApi = api;
+    }
+
+    public HttpMethod getHttpMethod() {
+        return httpMethod;
+    }
+
+    public void setHttpMethod(HttpMethod httpMethod) {
+        this.httpMethod = httpMethod;
     }
 
     public String getClassName() {
@@ -80,19 +104,20 @@ public class Mapping {
 //        throw new Exception("Method Not Found: " + methodName + " in class: " + className);
 //    }
 
-    public Object execMethod(HttpServletRequest request)
+    public Object execMethod(HttpServletRequest request, HttpServletResponse response)
         throws Exception {
         CustomSession customSession = null;
+
+        if(!request.getMethod().equalsIgnoreCase(this.getHttpMethod().name())){
+            throw new ServletException("Mehod [" + this.getHttpMethod().name().toUpperCase() +"] not allowed");
+        }
 
         Constructor<?> constructor = Class.forName(className).getConstructors()[0];
         Parameter[] constructorParams = constructor.getParameters();
         Object[] constructorArgs = new Object[constructorParams.length];
 
-        System.out.printf("constructor: %s", constructor);
-
         for (int i = 0; i < constructorParams.length; i++) {
             if (constructorParams[i].getType() == CustomSession.class) {
-                System.out.println("YEEESSSS");
                 customSession = new CustomSession(request.getSession());
                 constructorArgs[i] = customSession;
             }
@@ -131,9 +156,11 @@ public class Mapping {
 
     public Object parseValue(String value, Class<?> type) {
         String paramType = type.getSimpleName().toLowerCase();
+
+        System.out.println(value);
         switch (paramType) {
             case "localdate" -> {
-                return LocalDate.parse(value);
+                return LocalDate.parse(value, DateTimeUtils.DATE_FORMATTER);
             }
             case "localtime" -> {
                 return LocalTime.parse(value);
@@ -166,9 +193,10 @@ public class Mapping {
 
     public Object getValue(HttpServletRequest request, String paramName, Class<?> parmType)
         throws Exception {
-        if (Utility.isPrimitiveType(parmType))
+        System.out.println(paramName + ": " + request.getParameter(paramName));
+        if (Utility.isPrimitiveType(parmType)) {
             return parseValue(request.getParameter(paramName), parmType);
-
+        }
 
         Object obj = parmType.getDeclaredConstructor().newInstance();
 

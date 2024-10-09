@@ -54,7 +54,7 @@ public class FrontController extends HttpServlet {
         }
 
         try {
-            Object execMethod = mapping.execMethod(request);
+            Object execMethod = mapping.execMethod(request, response);
 
             if(mapping.isApi()) {
                 response.setContentType("application/json");
