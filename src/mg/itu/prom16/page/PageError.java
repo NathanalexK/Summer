@@ -8,22 +8,28 @@ import java.io.PrintWriter;
 public class PageError {
     private String title;
     private String body;
+    private Integer statusCode;
     private PrintWriter writer;
 
     public PageError() {
-
     }
 
     public void showPage() throws Exception {
         if(writer == null) throw new Exception("Writer is not set on PageError");
 
-        String html = """
+        String html =
+        """
             <!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>:title</title>
+                <style>
+                    .header {
+                        width: 100%;
+                    }
+                </style>
             </head>
             <body>
                <div class="header">

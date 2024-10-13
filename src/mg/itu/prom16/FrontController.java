@@ -54,28 +54,28 @@ public class FrontController extends HttpServlet {
         }
 
         try {
-            Object execMethod = mapping.execMethod(request, response);
-
-            if(mapping.isApi()) {
-                response.setContentType("application/json");
-                Gson gson = new MyJSON().getGson();
-                out.write(gson.toJson(execMethod));
-                return;
-            }
-
-            if(execMethod instanceof ModelView mv){
-                mv.getAttributes().forEach((key, value) -> {
-                    request.setAttribute(key, value);
-                });
-                request.getServletContext().getRequestDispatcher(mv.getUrl())
-                        .forward(request, response);
-
-            } else if (execMethod instanceof String str){
-                out.println(str);
-
-            } else {
-                throw new ServletException("Type de retour du methode: '" + mapping.getMethodName() +"' invalide");
-            }
+//            Object execMethod = mapping.execMapping(request, response);
+                mapping.execMapping(request, response);
+//            if(mapping.isApi()) {
+//                response.setContentType("application/json");
+//                Gson gson = new MyJSON().getGson();
+//                out.write(gson.toJson(execMethod));
+//                return;
+//            }
+//
+//            if(execMethod instanceof ModelView mv){
+//                mv.getAttributes().forEach((key, value) -> {
+//                    request.setAttribute(key, value);
+//                });
+//                request.getServletContext().getRequestDispatcher(mv.getUrl())
+//                        .forward(request, response);
+//
+//            } else if (execMethod instanceof String str){
+//                out.println(str);
+//
+//            } else {
+//                throw new ServletException("Type de retour du methode: '" + mapping.getMethodName() +"' invalide");
+//            }
         } catch (Exception e){
             e.printStackTrace();
             throw new ServletException(e.getMessage());
