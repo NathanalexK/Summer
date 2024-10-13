@@ -14,8 +14,14 @@ public class PageError {
     public PageError() {
     }
 
-    public void showPage() throws Exception {
-        if(writer == null) throw new Exception("Writer is not set on PageError");
+    public static void showPage(HttpServletResponse response, Integer statusCode, String body) {
+        PrintWriter out;
+        try {
+            out = response.getWriter();
+        } catch (Exception e) {
+            System.err.println("PrintWriter not found");
+            return;
+        }
 
         String html =
         """
@@ -26,8 +32,20 @@ public class PageError {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>:title</title>
                 <style>
+                    html, body {
+                        margin: 0;
+                        padding: 0;
+                    }
                     .header {
                         width: 100%;
+                        background-color: #518b8d;
+                        color: white;
+                        padding: 5px 20px;
+                        font-family: fantasy;
+                        font-size: 24px;
+                    }
+                    .content {
+                        font-family: cursive;
                     }
                 </style>
             </head>
@@ -41,11 +59,11 @@ public class PageError {
             </body>
             </html>
         """
-            .replaceAll(":title", title != null ? title : "Error")
-            .replaceAll(":error", "My Error")
+            .replaceAll(":title", "Error")
+            .replaceAll(":error", "Erreur " + statusCode + ": ")
             .replaceAll(":body", body);
-        writer.write(html);
-        writer.close();
+        out.write(html);
+        out.close();
     }
 
     public void close() {

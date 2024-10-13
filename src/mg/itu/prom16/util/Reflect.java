@@ -1,8 +1,10 @@
 package mg.itu.prom16.util;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletResponse;
 import mg.itu.prom16.annotations.*;
 import mg.itu.prom16.enumerations.HttpMethod;
+import mg.itu.prom16.http.HttpException;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -45,7 +47,7 @@ public class Reflect {
     }
 
     public static Map<String, Mapping> getAllUrlMapping(String packageName, String appName)
-            throws ServletException {
+            throws Exception {
         Map<String, Mapping> urlMapping = new HashMap<>();
         List<Class<?>> controllers = getControllers(packageName);
 
@@ -61,8 +63,7 @@ public class Reflect {
                 HttpMethodAction methodAction = new HttpMethodAction(actionHttpMethod, method, controller);
 
                 if(!hmaSet.add(methodAction)) {
-                    System.out.println("OKKKAAAYYY");
-                    throw new ServletException("Duplicate method name for: " + controller.getName() + "." + method.getName());
+                    throw new HttpException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Duplicate method name for: " + controller.getName() + "." + method.getName());
                 }
 
                 if(!urlMapping.containsKey(url)) {
@@ -74,7 +75,7 @@ public class Reflect {
 
                 Mapping mapping = urlMapping.get(url);
                 if(mapping.containsHttpMethod(actionHttpMethod)){
-                    throw new ServletException("Duplicate url for Http mehod: " + actionHttpMethod.name() + " url: " + url);
+                    throw new HttpException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Duplicate url for Http mehod: " + actionHttpMethod.name() + " url: " + url);
                 }
 
                 System.out.println(methodAction);

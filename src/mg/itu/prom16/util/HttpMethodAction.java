@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import mg.itu.prom16.annotations.Param;
 import mg.itu.prom16.annotations.RestApi;
 import mg.itu.prom16.enumerations.HttpMethod;
+import mg.itu.prom16.http.HttpException;
 import mg.itu.prom16.page.ContentType;
 
 import java.io.PrintWriter;
@@ -77,7 +78,7 @@ public class HttpMethodAction {
         Class<?> controllerClass = this.getActionClass();
 
         if(!request.getMethod().equalsIgnoreCase(this.getHttpMethod().name())){
-            throw new ServletException("Mehod [" + this.getHttpMethod().name().toUpperCase() +"] not allowed");
+            throw new HttpException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Mehod [" + this.getHttpMethod().name().toUpperCase() +"] not allowed");
         }
 
         Constructor<?> constructor = controllerClass.getConstructors()[0];
