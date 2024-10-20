@@ -3,6 +3,7 @@ package mg.itu.prom16;
 
 import com.google.gson.Gson;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,7 +20,11 @@ import java.util.Map;
 
 import static mg.itu.prom16.util.Reflect.*;
 
-
+@MultipartConfig(
+    fileSizeThreshold = 1024 * 1024 * 1,  // 1 MB
+    maxFileSize = 1024 * 1024 * 10,       // 10 MB
+    maxRequestSize = 1024 * 1024 * 15     // 15 MB
+)
 public class FrontController extends HttpServlet {
     protected static List<String> controllersList = null;
     protected static Map<String, Mapping> urlMapping = null;
@@ -86,9 +91,11 @@ public class FrontController extends HttpServlet {
 //                throw new ServletException("Type de retour du methode: '" + mapping.getMethodName() +"' invalide");
 //            }
         } catch (HttpException httpException) {
+            httpException.printStackTrace();
             PageError.showPage(response, httpException.getHttpStatus(), httpException.getMessage());
         } catch (Exception e){
             e.printStackTrace();
+            PageError.showPage(response, 500, e.getMessage());
             throw new ServletException(e.getMessage());
         }
     }
