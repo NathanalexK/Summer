@@ -7,6 +7,8 @@ import java.time.LocalTime;
 public class ValueParser {
 
     public static Object parseStringValue(String value, Class<?> type) {
+        if(value == null) return null;
+
         String paramType = type.getSimpleName().toLowerCase();
 
         System.out.println(value);

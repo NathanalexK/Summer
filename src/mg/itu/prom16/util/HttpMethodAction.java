@@ -6,6 +6,7 @@ import com.thoughtworks.paranamer.Paranamer;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 import mg.itu.prom16.annotations.Param;
 import mg.itu.prom16.annotations.RestApi;
 import mg.itu.prom16.enumerations.HttpMethod;
@@ -114,7 +115,7 @@ public class HttpMethodAction {
             } else
                 throw new ServletException("etu2498: Annotation @Param de la methode:" + actionMethod.getName() + " introuvable");
 
-            paramValues[i] = getValue(request, paramName, parameters[i].getType());
+            paramValues[i] = getValueFromRequest(request, paramName, parameters[i].getType());
         }
 
         Object invoked = actionMethod.invoke(controller, paramValues);
@@ -143,11 +144,17 @@ public class HttpMethodAction {
         out.close();
     }
 
-    public Object getValue(HttpServletRequest request, String paramName, Class<?> parmType)
+    public Object getValueFromRequest(HttpServletRequest request, String paramName, Class<?> parmType)
         throws Exception {
         System.out.println(paramName + ": " + request.getParameter(paramName));
         if (Utility.isPrimitiveType(parmType)) {
             return  ValueParser.parseStringValue(request.getParameter(paramName), parmType);
+        }
+
+        if(parmType == CustomFile.class){
+            Part part = request.getPart(paramName);
+            if(part == null) return null;
+            return new CustomFile(part);
         }
 
         Object obj = parmType.getDeclaredConstructor().newInstance();
@@ -156,7 +163,20 @@ public class HttpMethodAction {
         Method[] methods = obj.getClass().getDeclaredMethods();
 
         for (Field field : fields) {
-            Object value = ValueParser.parseStringValue(request.getParameter(paramName + "." + field.getName()), field.getType());
+            Object value = null;
+            if(field.getType() == CustomFile.class) {
+                Part part = request.getPart(paramName + "." + field.getName());
+                if(part == null) continue;
+                value = new CustomFile(part);
+            } else if(field.getType() == byte[].class) {
+                Part part = request.getPart(paramName + "." + field.getName());
+                if(part == null) continue;
+                value = part.getInputStream().readAllBytes();
+            }
+
+            else {
+                value = ValueParser.parseStringValue(request.getParameter(paramName + "." + field.getName()), field.getType());
+            }
             Reflect.setObjectField(obj, methods, field, value);
         }
         return obj;
