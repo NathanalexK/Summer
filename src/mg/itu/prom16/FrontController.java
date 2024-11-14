@@ -7,6 +7,7 @@ import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import mg.itu.prom16.exception.FormException;
 import mg.itu.prom16.http.HttpException;
 import mg.itu.prom16.page.PageError;
 import mg.itu.prom16.util.Mapping;
@@ -55,7 +56,7 @@ public class FrontController extends HttpServlet {
 
 
         try {
-            if(firstInit) {
+            if (firstInit) {
                 String packageName = this.getInitParameter("controller-package");
                 urlMapping = getAllUrlMapping(packageName, getServletContext().getContextPath());
                 firstInit = false;
@@ -65,11 +66,13 @@ public class FrontController extends HttpServlet {
             String url = request.getRequestURI();
             Mapping mapping = getMapping(url);
 
-            if(mapping == null) {
-                throw new HttpException (HttpServletResponse.SC_NOT_FOUND, "Il n\'y a pas de methode associé a ce chemin: " + url);
+            if (mapping == null) {
+                throw new HttpException(HttpServletResponse.SC_NOT_FOUND, "Il n\'y a pas de methode associé a ce chemin: " + url);
             }
 //            Object execMethod = mapping.execMapping(request, response);
             mapping.execMapping(request, response);
+
+
 //            if(mapping.isApi()) {
 //                response.setContentType("application/json");
 //                Gson gson = new MyJSON().getGson();
@@ -90,6 +93,9 @@ public class FrontController extends HttpServlet {
 //            } else {
 //                throw new ServletException("Type de retour du methode: '" + mapping.getMethodName() +"' invalide");
 //            }
+        }  catch (FormException formException) {
+            formException.printStackTrace();
+            PageError.showPage(response, 500, formException.getHtml());
         } catch (HttpException httpException) {
             httpException.printStackTrace();
             PageError.showPage(response, httpException.getHttpStatus(), httpException.getMessage());
