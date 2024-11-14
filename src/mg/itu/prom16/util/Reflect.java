@@ -3,7 +3,9 @@ package mg.itu.prom16.util;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 import mg.itu.prom16.annotations.*;
+import mg.itu.prom16.annotations.model.*;
 import mg.itu.prom16.enumerations.HttpMethod;
+import mg.itu.prom16.exception.ValidationException;
 import mg.itu.prom16.http.HttpException;
 
 import java.io.File;
@@ -93,12 +95,15 @@ public class Reflect {
 
     public static Object setObjectField(Object obj, Method[] methods, Field field, Object value)
             throws Exception {
-        String setterMethod = "set" + Utility.capitalize(field.getName());
 
+        checkField(field, value);
+
+        String setterMethod = "set" + Utility.capitalize(field.getName());
         for(Method method : methods) {
             if(!method.getName().equals(setterMethod)) continue;
 
-            return method.invoke(obj, value);
+            Object invoked = method.invoke(obj, value);
+            return invoked;
         }
 
         throw new Exception("Aucun setter trouvé pour l'attribut: " + field.getName());
@@ -106,5 +111,33 @@ public class Reflect {
 
     protected static boolean hasHttpMehod(Method method) {
         return method.isAnnotationPresent(Get.class) || method.isAnnotationPresent(Post.class);
+    }
+
+    protected static void checkField(Field field, Object value) throws ValidationException {
+        if(field.isAnnotationPresent(Required.class) && !ValidationUtils.checkRequired(String.valueOf(value))) {
+            throw new ValidationException("Field " + field.getName() + " is required");
+        }
+
+        if(field.isAnnotationPresent(Numeric.class) && !ValidationUtils.isNumeric(String.valueOf(value))) {
+            throw new ValidationException("Field " + field.getName() + " must be numeric");
+        }
+
+        if(field.isAnnotationPresent(Length.class) && !ValidationUtils.checkLength(String.valueOf(value), field.getAnnotation(Length.class).value())) {
+            throw new ValidationException("Length of " + field.getName() + " must be below " + field.getAnnotation(Length.class).value());
+        }
+
+        if(field.isAnnotationPresent(Range.class) && !ValidationUtils.checkRange(String.valueOf(value), field.getAnnotation(Range.class).min(), field.getAnnotation(Range.class).max())) {
+            throw new ValidationException("Range of " + field.getName() + " must be between " + field.getAnnotation(Range.class).min() + " and " + field.getAnnotation(Range.class).max());
+        }
+
+        if(field.isAnnotationPresent(Email.class) && !ValidationUtils.checkEmail(String.valueOf(value))) {
+            throw new ValidationException(field.getName() + " must be an email");
+        }
+
+        if(field.isAnnotationPresent(Regex.class) && !ValidationUtils.checkRegex(String.valueOf(value), field.getAnnotation(Regex.class).value())) {
+            throw new ValidationException(field.getName() + " does not matches with pattern: \"" + field.getAnnotation(Regex.class).value() + "\"");
+        }
+
+
     }
 }

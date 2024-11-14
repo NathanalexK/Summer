@@ -10,6 +10,8 @@ import jakarta.servlet.http.Part;
 import mg.itu.prom16.annotations.Param;
 import mg.itu.prom16.annotations.RestApi;
 import mg.itu.prom16.enumerations.HttpMethod;
+import mg.itu.prom16.exception.FormException;
+import mg.itu.prom16.exception.ValidationException;
 import mg.itu.prom16.http.HttpException;
 import mg.itu.prom16.page.ContentType;
 
@@ -18,6 +20,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public class HttpMethodAction {
@@ -93,6 +97,8 @@ public class HttpMethodAction {
             }
         }
 
+//        request.setAttribute();
+
         Object controller;
         controller = constructor.newInstance(constructorArgs);
 
@@ -102,6 +108,8 @@ public class HttpMethodAction {
         Parameter[] parameters = actionMethod.getParameters();
         String[] paramNames = paranamer.lookupParameterNames(actionMethod);
         Object[] paramValues = new Object[parameters.length];
+
+        Map<String, String> error = new HashMap<>();
 
         for (int i = 0; i < parameters.length; i++) {
             String paramName = null;
@@ -115,7 +123,11 @@ public class HttpMethodAction {
             } else
                 throw new ServletException("etu2498: Annotation @Param de la methode:" + actionMethod.getName() + " introuvable");
 
+//            try {
             paramValues[i] = getValueFromRequest(request, paramName, parameters[i].getType());
+//            } catch (ValidationException ve) {
+//                error.put()
+//            }
         }
 
         Object invoked = actionMethod.invoke(controller, paramValues);
@@ -145,7 +157,7 @@ public class HttpMethodAction {
     }
 
     public Object getValueFromRequest(HttpServletRequest request, String paramName, Class<?> parmType)
-        throws Exception {
+            throws Exception {
         System.out.println(paramName + ": " + request.getParameter(paramName));
         if (Utility.isPrimitiveType(parmType)) {
             return  ValueParser.parseStringValue(request.getParameter(paramName), parmType);
@@ -162,23 +174,44 @@ public class HttpMethodAction {
         Field[] fields = obj.getClass().getDeclaredFields();
         Method[] methods = obj.getClass().getDeclaredMethods();
 
+
+        Map<String, String> errorMap = new HashMap<>();
+        boolean hasError = false;
         for (Field field : fields) {
             Object value = null;
+            String requestAttName = paramName + "." + field.getName();
+
+
+
             if(field.getType() == CustomFile.class) {
-                Part part = request.getPart(paramName + "." + field.getName());
+                Part part = request.getPart(requestAttName);
                 if(part == null) continue;
                 value = new CustomFile(part);
             } else if(field.getType() == byte[].class) {
-                Part part = request.getPart(paramName + "." + field.getName());
+                Part part = request.getPart(requestAttName);
                 if(part == null) continue;
                 value = part.getInputStream().readAllBytes();
             }
 
             else {
-                value = ValueParser.parseStringValue(request.getParameter(paramName + "." + field.getName()), field.getType());
+                value = ValueParser.parseStringValue(request.getParameter(requestAttName), field.getType());
             }
-            Reflect.setObjectField(obj, methods, field, value);
+
+            try {
+                Reflect.setObjectField(obj, methods, field, value);
+            } catch (ValidationException ve) {
+                hasError = true;
+                errorMap.put(field.getName(), ve.getMessage());
+
+            }
         }
+        if(hasError) {
+            request.setAttribute("error", errorMap);
+            throw new FormException(errorMap);
+//            String error = "";
+//            throw new Exception("Exception found in Form:");
+        }
+
         return obj;
     }
 
