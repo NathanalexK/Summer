@@ -1,6 +1,7 @@
 package mg.itu.prom16.exception;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class FormException extends Exception{
@@ -21,4 +22,11 @@ public class FormException extends Exception{
         return html.toString();
     }
 
+    public Map<String, String> getErrors() {
+        return errors;
+    }
+
+    public void setErrors(Map<String, String> errors) {
+        this.errors = errors;
+    }
 }

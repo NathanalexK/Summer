@@ -139,6 +139,7 @@ public class Mapping {
         for(HttpMethodAction methodAction : methodActions) {
             if(methodAction.getHttpMethod() == requestMethod) {
                 methodAction.execMethod(request, response);
+                return;
             }
         }
         throw new Exception("No method [" + requestMethod.name() + "] is associated with: " + request.getRequestURI());
