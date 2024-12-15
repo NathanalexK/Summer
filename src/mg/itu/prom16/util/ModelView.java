@@ -5,8 +5,22 @@ import java.util.HashMap;
 public class ModelView {
     private String url;
     private HashMap<String, Object> data = new HashMap<>();
+    private String redirectErrorUrl = null;
+
 
     public ModelView() {
+    }
+
+    public void redirectOnError(String url) {
+        this.redirectErrorUrl = url;
+    }
+
+    public String getRedirectErrorUrl() {
+        return redirectErrorUrl;
+    }
+
+    public void setRedirectErrorUrl(String redirectErrorUrl) {
+        this.redirectErrorUrl = redirectErrorUrl;
     }
 
     public ModelView(String url) {

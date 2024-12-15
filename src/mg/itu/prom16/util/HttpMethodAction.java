@@ -5,6 +5,7 @@ import com.thoughtworks.paranamer.AdaptiveParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
 import mg.itu.prom16.annotations.Param;
@@ -12,9 +13,11 @@ import mg.itu.prom16.annotations.RestApi;
 import mg.itu.prom16.enumerations.HttpMethod;
 import mg.itu.prom16.exception.FormException;
 import mg.itu.prom16.exception.ValidationException;
+import mg.itu.prom16.exception.ValidationExceptionList;
 import mg.itu.prom16.http.HttpException;
 import mg.itu.prom16.page.ContentType;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -143,9 +146,10 @@ public class HttpMethodAction {
         }
 
         if(invoked instanceof ModelView mv){
-            mv.getAttributes().forEach(request::setAttribute);
-            request.getServletContext().getRequestDispatcher(mv.getUrl())
-                .forward(request, response);
+            processModelView(request, response, mv);
+//            mv.getAttributes().forEach(request::setAttribute);
+//            request.getServletContext().getRequestDispatcher(mv.getUrl())
+//                .forward(request, response);
 
         } else if (invoked instanceof String str){
             out.println(str);
@@ -156,8 +160,33 @@ public class HttpMethodAction {
         out.close();
     }
 
+    public void processModelView(HttpServletRequest request, HttpServletResponse response, ModelView mv) throws ServletException, IOException {
+        mv.getAttributes().forEach(request::setAttribute);
+        Object hasErrorObj = request.getAttribute("hasError");
+        System.out.println("hasErrorObj: " + hasErrorObj);
+        if(hasErrorObj != null && hasErrorObj instanceof Boolean hasError && hasError) {
+            System.out.println("Has error = true");
+            HttpServletRequestWrapper wrapper = new HttpServletRequestWrapper(request){
+                @Override
+                public String getMethod() {
+                    return "GET";
+                }
+            };
+            System.out.println("New Method: " + request.getMethod());
+            String referer = "/" + request.getHeader("Referer");
+            request.setAttribute("hasError", null);
+            request.getServletContext().getRequestDispatcher(mv.getRedirectErrorUrl()).forward(wrapper, response);
+            return;
+        }
+
+
+        request.getServletContext().getRequestDispatcher(mv.getUrl())
+            .forward(request, response);
+    }
+
     public Object getValueFromRequest(HttpServletRequest request, String paramName, Class<?> parmType)
             throws Exception {
+        request.setAttribute("hasError", false);
         System.out.println(paramName + ": " + request.getParameter(paramName));
         if (Utility.isPrimitiveType(parmType)) {
             return  ValueParser.parseStringValue(request.getParameter(paramName), parmType);
@@ -174,7 +203,7 @@ public class HttpMethodAction {
         Field[] fields = obj.getClass().getDeclaredFields();
         Method[] methods = obj.getClass().getDeclaredMethods();
 
-
+        Map<String, Object> model = new HashMap<>();
         Map<String, String> errorMap = new HashMap<>();
         boolean hasError = false;
         for (Field field : fields) {
@@ -198,16 +227,20 @@ public class HttpMethodAction {
             }
 
             try {
+                model.put(requestAttName, value);
                 Reflect.setObjectField(obj, methods, field, value);
             } catch (ValidationException ve) {
                 hasError = true;
-                errorMap.put(field.getName(), ve.getMessage());
-
+                errorMap.put(requestAttName, ve.getError());
             }
         }
         if(hasError) {
-            request.setAttribute("error", errorMap);
-            throw new FormException(errorMap);
+            System.out.println("iiioooo");
+            request.setAttribute("hasError", true);
+            request.setAttribute("errors", errorMap);
+//            request.setAttribute("model", model);
+//            System.out.println("errorMapppp eeee");
+//            throw new FormException(errorMap);
 //            String error = "";
 //            throw new Exception("Exception found in Form:");
         }
